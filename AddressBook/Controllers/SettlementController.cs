@@ -1,0 +1,52 @@
+﻿using AddressBook.Api.Extensions;
+using AddressBook.Shared.Contracts.Business;
+using AddressBook.Shared.DataTransferObjects.Settlement;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+namespace AddressBook.Api.Controllers
+{
+    public class SettlementController : BaseController
+    {
+        private readonly ISettlementService _settlementService;
+
+        public SettlementController(ISettlementService settlementService)
+        {
+            _settlementService = settlementService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllAsync()
+        {
+            var settlements = await _settlementService.FindAllAsync();
+            return ApiResponseOk(settlements);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateAsync([FromBody] CreateSettlementDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState.GetErrorMessages());
+
+            await _settlementService.CreateAsync(request);
+            return ApiResponseOk();
+        }
+
+        [HttpPut("{settlementId}")]
+        public async Task<IActionResult> UpdateAsync(int settlementId, [FromBody]CreateSettlementDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState.GetErrorMessages());
+
+            await _settlementService.UpdateAsync(settlementId, request);
+            return ApiResponseOk(null);
+        }
+
+        [HttpDelete("{settlementId}")]
+        public async Task<IActionResult> DeleteAsync(int settlementId)
+        {
+            await _settlementService.DeleteAsync(settlementId);
+            return ApiResponseOk();
+        }
+    }
+}
