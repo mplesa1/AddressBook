@@ -1,17 +1,9 @@
+using AddressBook.Api.Hubs;
 using AddressBook.Api.Infrastructure;
-using AddressBook.BusinessLayer.AutoMapper;
-using AddressBook.BusinessLayer.Services;
 using AddressBook.DataAccessLayer.Persistence.Contexts;
-using AddressBook.DataAccessLayer.Repositories;
-using AddressBook.Shared.Contracts.Business;
-using AddressBook.Shared.Contracts.DataAccess;
 using AddressBook.Shared.Infrastructure.Middlerwares;
-using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,64 +28,22 @@ namespace AddressBook
             services.AddMvcCore()
                     .AddApiExplorer();
 
-            services.AddCors(options =>
-            {
-                options.AddPolicy("CorsPolicy",
-                    builder => builder.AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader());
-            });
-
             services.AddSwaggerDocumentation();
-
+            services.ConfigureCors();
+            string databaseString = Configuration.GetConnectionString("databaseString");
             services.AddEntityFrameworkNpgsql().AddDbContext<AppDbContext>(options =>
             {
-                options.UseNpgsql(Configuration.GetConnectionString("databaseString"));
+                options.UseNpgsql(databaseString);
                 options.EnableSensitiveDataLogging();
             }, ServiceLifetime.Transient);
 
-            //services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
-            //services.AddScoped<IUrlHelper>(factory =>
-            //{
-            //    var actionContext = factory.GetService<IActionContextAccessor>()
-            //                                   .ActionContext;
-            //    if (actionContext != null)
-            //    {
-            //        return new UrlHelper(actionContext);
-            //    }
-            //    return null;
-            //});
-            services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
-            services.AddScoped<IUrlHelper>(x => {
-                var actionContext = x.GetRequiredService<IActionContextAccessor>().ActionContext;
-                var factory = x.GetRequiredService<IUrlHelperFactory>();
-                return factory.GetUrlHelper(actionContext);
-            });
+            services.AddSignalR();
+            services.AddUrlHelper();
+            services.RegisterServices();
+            services.RegisterRepositories();
+            services.AutoMapperConfig();
 
-            #region Services DI
-            services.AddScoped<ICityService, CityService>();
-            services.AddScoped<ISettlementService, SettlementService>();
-            services.AddScoped<IContactService, ContactService>();
-
-            #endregion
-
-            #region Repositories DI
-            services.AddScoped<ICityRepository, CityRepository>();
-            services.AddScoped<ISettlementRepository, SettlementRepository>();
-            services.AddScoped<IContactRepository, ContactRepository>();
-            #endregion
-
-            #region Autommaper
-            var mappingConfig = new MapperConfiguration(mc =>
-            {
-                mc.AddProfile(new AutoMapperProfile());
-            });
-
-            IMapper mapper = mappingConfig.CreateMapper();
-            services.AddSingleton(mapper);
-            #endregion
-
-
+            
             var serviceProvider = services.BuildServiceProvider();
         }
 
